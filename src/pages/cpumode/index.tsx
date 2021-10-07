@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { BackButton } from '../../components/back';
 import { Button } from '../../components/button';
 import './style.scss';
@@ -7,51 +7,52 @@ type Players = 'X' | 'O';
 
 export function Cpumode() {
   const [ mark, setMark ] = useState<{ [key: string]: Players }>({});
+  const [ winner, setWinner ] = useState< Players|boolean >(false);
+  const [ hasClicked, setHasClicked ] = useState<boolean>(false);
   const [ playerTurn, setPlayerTurn ] = useState<Players>('X');
-  const [ winner, setWinner ] = useState< Players|null >(null);
-
-  const [ turn, setTurn ] = useState<boolean>(true);
-
   let [ scorePlayerX, setScorePlayerX ] = useState<number>(0);
-  let [ scorePlayerO, setScorePlayerO ] = useState<number>(0);
+  let [ scoreCpu, setscoreCpu ] = useState<number>(0);
+  let [ counter, setCounter ] = useState<number>(0);
+  let [ turn, setTurn ] = useState<boolean>(true);
+  let [ index, setIndex ] = useState<number>(0);
+  
+  
 
 
   const getSquares = ( ) => {
     return new Array(9).fill(true);
   };
 
-  const randomMarker = ( max: number ) => {
-    let cpuMark = Math.floor(Math.random() * max);
-
-    markCpu(cpuMark)
-  }
-
-  const markCpu = ( cpuPlay: number ) => {
-    console.log(mark[cpuPlay])
-    if( mark[cpuPlay] ){
-      randomMarker( 9 )
-    }
-    else
-    {
-      setMark( prev => ({ ...prev, [cpuPlay]: 'O' }) );
-      setTurn( prev => ( prev ? false : true ));
-    }
-  }
-
   const marking = ( index: number ) => {
     if( !mark[index] && !winner && turn ){
-      
       setMark( prev => ({ ...prev, [index]: playerTurn }));
       setTurn( prev => ( prev ? false : true ));
 
-      setTimeout( () => randomMarker(9), 800)
+      setIndex(index);
+      setHasClicked(true);
     } else {return}
+  };
+
+  const randomMarker = ( index: number ) => {
+    if( winner === 'X' || winner === 'O') return;
+
+    if( winner === false && Object.keys(mark).length !== 9 ){
+      let randomNumber = Math.floor(Math.random() * 9);
+      
+      if( randomNumber !== index && mark[randomNumber] !== 'X' && mark[randomNumber] !== 'O' ){
+        setMark( prev => ({ ...prev, [randomNumber]: 'O' }) );
+        setTurn( prev => ( prev ? false : true ));
+
+      } else 
+      {
+        randomMarker( index )
+      }
+    }
   };
 
   const getColorsInMark = ( index: number ) => {
     if ( !mark[index] ){return};
 
-    // Pega a marcação de tal posição e retora o que está escrito
     return mark[index];
   };
 
@@ -74,7 +75,7 @@ export function Cpumode() {
 
       if( mark[a] && mark[a] === mark[b] && mark[a] === mark[c]){
         saveResults(mark[a]);
-
+        setHasClicked(false)
         return mark[a]; 
       }
     }
@@ -89,16 +90,17 @@ export function Cpumode() {
       }
       
       if( value === 'O'){
-        setScorePlayerO( scorePlayerO = scorePlayerO + 1 );
+        setscoreCpu( scoreCpu = scoreCpu + 1 );
 
-        localStorage.setItem('scroreOwithCpu', JSON.stringify(scorePlayerO));
+        localStorage.setItem('scroreOwithCpu', JSON.stringify(scoreCpu));
         setTimeout( restartGame, 800)
       }
   };
 
   const restartGame = () => {
+    setTurn(true)
+    setWinner(false);
     setMark({})
-    setWinner(null);
     setPlayerTurn('X');
   };
 
@@ -106,18 +108,30 @@ export function Cpumode() {
     setScorePlayerX( 0 );
     localStorage.setItem('scroreXwithCpu', JSON.stringify(0));
 
-    setScorePlayerO( 0 );
+    setscoreCpu( 0 );
     localStorage.setItem('scroreOwithCpu', JSON.stringify(0));
 
-    restartGame();    
+    restartGame();
   };
 
   useEffect(() => {
-    const existsWinner = getWinner();
+    setCounter( 1 );
 
-    if( existsWinner ){
-      setWinner(existsWinner);
+    let existsWinner = getWinner();
+    if( existsWinner ){setWinner(existsWinner)} 
+
+    if( !existsWinner ) {
+      if( Object.keys(mark).length === 9 ){restartGame()}
+
+      if( Object.keys(mark).length < 9 ){
+
+        if( counter === 1 && hasClicked ){
+          setHasClicked(false)
+          setTimeout( () => randomMarker( index ), 300)
+        }
+      }
     }
+
   }, [mark]);
 
   useEffect( () => {
@@ -137,7 +151,7 @@ export function Cpumode() {
       <BackButton />
       
       <div className="player" id="player-container">
-        <h1 id="player">{playerTurn == 'X' ? 'Sua vez!!' : 'CPU'}</h1>
+        <h1 id="player">{ turn ? 'Sua vez!!' : 'CPU' }</h1>
       </div>
 
       <div className="pontuation-container">
@@ -145,7 +159,7 @@ export function Cpumode() {
           <h3 id="playerOne-pointer">{ Number(localStorage.getItem('scroreXwithCpu')) || scorePlayerX}</h3>
         </div>
         <div className="player-pontuation two">
-          <h3 id="playerTwo-pointer">{ Number(localStorage.getItem('scroreOwithCpu')) || scorePlayerO}</h3>
+          <h3 id="playerTwo-pointer">{ Number(localStorage.getItem('scroreOwithCpu')) || scoreCpu}</h3>
         </div>
       </div>
 
