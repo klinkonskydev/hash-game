@@ -98,6 +98,8 @@ export function Cpumode() {
   };
 
   const restartGame = () => {
+    setCounter(0)
+    setHasClicked(false)
     setTurn(true)
     setWinner(false);
     setMark({})
@@ -121,7 +123,9 @@ export function Cpumode() {
     if( existsWinner ){setWinner(existsWinner)} 
 
     if( !existsWinner ) {
-      if( Object.keys(mark).length === 9 ){restartGame()}
+      if( Object.keys(mark).length === 9 ){
+        restartGame()
+      }
 
       if( Object.keys(mark).length < 9 ){
 
